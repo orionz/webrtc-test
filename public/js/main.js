@@ -1,18 +1,6 @@
 
 'use strict';
 
-console.log("begin...")
-
-/*
-  var config = { 
-    "iceServers"         = [],
-    "iceTransportPolicy" = "all",
-    "bundlePolicy"       = "balanced",
-    "peerIdentity"       = "token";
-//    "certificates"       =;
-   };
-*/
-
 var localVideo = document.querySelector('video#local')
 var remoteVideo = document.querySelector('video#remote')
 var start = document.querySelector('#start')
@@ -49,25 +37,21 @@ function getter(id, pc) {
   getData(id,function(signal) {
     var callback = sayOk
     if (signal.type == "offer") callback = function() {
-      console.log("createAnswer")
+      console.log("Sending Answer")
       pc.createAnswer(function(answer) {
-        console.log("setLocal")
-        console.log(answer)
+        // answer setting local
+        console.log("Setting Local")
         pc.setLocalDescription(answer,function() {
           putData(other(id), answer, sayOk)
         },sayError)
       }, sayError); 
     }
     if (signal.sdp) {
-      console.log("setRemoteDesc")
-      console.log(signal)
+      // caller or answerer setting remote desc
+      console.log("Setting Remote")
       pc.setRemoteDescription(new RTCSessionDescription(signal), callback, sayError)
     } else if (signal.candidate) {
-      console.log("new ICE candidate: "+ signal.candidate)
       pc.addIceCandidate(new RTCIceCandidate(signal));
-    } else {
-      console.log("unknown signal")
-      console.log(signal)
     }
     getter(id, pc)
   })
@@ -85,46 +69,38 @@ function getData(id,handler) {
 
 function putData(id,data,succ) {
   var body = JSON.stringify(data)
-/*
-  console.log("----- OBJ -----")
-  console.log(data)
-  console.log("----- JSON -----")
-  console.log(body)
-*/
   $.ajax("/call/"+id, {
     contentType: "application/json; charset=UTF-8",
     method: "put",
     data: JSON.stringify(data),
     success: succ,
-    error: function(err) {
-      console.log("put data err")
-    }
+    error: sayError
   });
 }
 
 function mkIceCallback(id) {
   return function iceCallback(event) {
-    console.log("Ice Callback")
     if (event.candidate) {
       putData(id,event.candidate)
-    } else {
-//      console.log("null ice candidate")
-//      console.log(event)
     }
   }
 }
 
 answer.onclick = function() {
-  console.log("click answer!")
   answer.disabled = true;
-  var config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
+  //var config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
+  var config = null
   remotePC = new RTCPeerConnection(config)
-  console.log('Created local peer connection object pc');
   remotePC.onicecandidate = mkIceCallback(1);
 
   remotePC.onconnecting   = function() { console.log("answer:onconnecting") }
   remotePC.onopen         = function() { console.log("answer:onopen") }
-  remotePC.onaddstream    = function() { console.log("answer:onRemoteStreamAdded") }
+  remotePC.onaddstream    = function(event) {
+    console.log("answer:onRemoteStreamAdded") 
+    remoteVideo.src = URL.createObjectURL(event.stream);
+    console.log("videoURL: " + remoteVideo.src)
+//    remoteVideo.play();
+  }
   remotePC.onremovestream = function() { console.log("answer:onRemoteStreamRemoved") }
   remotePC.ondatachannel  = function(event) { console.log("answer:DATA!"); console.log(event) 
     event.channel.onmessage = function(event) {
@@ -142,7 +118,6 @@ answer.onclick = function() {
 }
 
 call.onclick = function() {
-  console.log("click call!")
   call.disabled = true;
   answer.disabled = false;
 
@@ -151,7 +126,6 @@ call.onclick = function() {
 
   var servers = null
   localPC = new RTCPeerConnection(servers)
-  console.log('Created local peer connection object pc');
   localPC.onicecandidate = mkIceCallback(2);
 
   localPC.onconnecting   = function() { console.log("call:onconnecting") }
@@ -170,7 +144,6 @@ call.onclick = function() {
 
   getter(1,localPC)
 
-  console.log("setup data channel...")
   localPC.addStream(window.stream) 
   sendChannel = localPC.createDataChannel("datachannel1");
   sendChannel.onmessage = function(event) {
@@ -179,10 +152,10 @@ call.onclick = function() {
     chatBuffer.push(event.data)
     chat.innerHTML = chatBuffer.join("\n")
   }
-  console.log("createOffer")
+
+  // OFFER
   localPC.createOffer(function(desc) {
-    console.log("setLocalDesc")
-    console.log(desc)
+    // Caller setting local
     localPC.setLocalDescription(desc, function() {
       putData(2, desc, sayOk)
     }, sayError);
@@ -206,8 +179,8 @@ start.onclick = function() {
   navigator.getUserMedia({video: true, audio: true}, function(localMediaStream) {
     window.stream = localMediaStream; 
     localVideo.src = window.URL.createObjectURL(localMediaStream);
-    console.log(localVideo.src)
-    localVideo.play();
+    console.log("videoURL: " + localVideo.src)
+//    localVideo.play();
     call.disabled = false;
   }, sayError);
 
