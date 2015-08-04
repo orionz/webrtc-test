@@ -99,10 +99,10 @@ answer.onclick = function() {
     console.log("answer:onRemoteStreamAdded") 
     remoteVideo.src = URL.createObjectURL(event.stream);
     console.log("videoURL: " + remoteVideo.src)
-//    remoteVideo.play();
   }
   remotePC.onremovestream = function() { console.log("answer:onRemoteStreamRemoved") }
   remotePC.ondatachannel  = function(event) { console.log("answer:DATA!"); console.log(event) 
+    window.remoteChannel = event.channel
     event.channel.onmessage = function(event) {
       console.log("answer:I got a message!")
       console.log(event)
