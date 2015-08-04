@@ -119,7 +119,7 @@ answer.onclick = function() {
 
 call.onclick = function() {
   call.disabled = true;
-  answer.disabled = false;
+  answer.disabled = true;
 
   console.log('Using video device: ' + window.stream.getVideoTracks()[0].label);
   console.log('Using audio device: ' + window.stream.getAudioTracks()[0].label);
@@ -182,6 +182,7 @@ start.onclick = function() {
     console.log("videoURL: " + localVideo.src)
 //    localVideo.play();
     call.disabled = false;
+    answer.disabled = false;
   }, sayError);
 
   console.log("end...")
